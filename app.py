@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, abort
 import database
 import asyncio
 import secrets
@@ -9,9 +9,31 @@ app.secret_key = secrets.token_hex(16)  # Set a secret key for session managemen
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
+def load_products():
+    with open('products.json', 'r') as f:
+        return json.load(f)
+
+
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/shop')
+def shop():
+    return render_template('shop.html')
+
+@app.route('/product/<id>')
+def product_page(id):
+    products = load_products()
+    product = next((p for p in products if p['id'] == id), None)
+    if not product:
+        abort(404)
+    return render_template('product.html', product=product)
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('404.html'), 404
+
 
 def save_cookie(data: dict, max_age = 86400*7):
     resp = redirect(url_for('home'))
